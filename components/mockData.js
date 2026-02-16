@@ -1,8 +1,11 @@
-import { makeId } from "./utils"
+export const makeId = (prefix = "id") => {
+  if (prefix === "c") return `conv_init_${Math.random().toString(36).slice(2)}`
+  return `${prefix}_${Math.random().toString(36).slice(2)}`
+}
 
 export const INITIAL_CONVERSATIONS = [
   {
-    id: "c1",
+    id: "conv_init_c1",
     title: "Marketing plan for launch",
     updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     messageCount: 12,
@@ -25,7 +28,7 @@ export const INITIAL_CONVERSATIONS = [
     ],
   },
   {
-    id: "c2",
+    id: "conv_init_c2",
     title: "Research: vector databases vs RAG",
     updatedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
     messageCount: 22,
@@ -35,7 +38,7 @@ export const INITIAL_CONVERSATIONS = [
     messages: [],
   },
   {
-    id: "c3",
+    id: "conv_init_c3",
     title: "Trip checklist – Paris with family",
     updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     messageCount: 9,
@@ -45,7 +48,7 @@ export const INITIAL_CONVERSATIONS = [
     messages: [],
   },
   {
-    id: "c4",
+    id: "conv_init_c4",
     title: "Refactor prompt templates for support",
     updatedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
     messageCount: 17,
@@ -55,7 +58,7 @@ export const INITIAL_CONVERSATIONS = [
     messages: [],
   },
   {
-    id: "c5",
+    id: "conv_init_c5",
     title: "Bug triage notes",
     updatedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
     messageCount: 6,
@@ -65,7 +68,7 @@ export const INITIAL_CONVERSATIONS = [
     messages: [],
   },
   {
-    id: "c6",
+    id: "conv_init_c6",
     title: "AI agent: inbox clean-up flow",
     updatedAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
     messageCount: 31,
@@ -75,7 +78,7 @@ export const INITIAL_CONVERSATIONS = [
     messages: [],
   },
   {
-    id: "c7",
+    id: "conv_init_c7",
     title: "Weekly review – personal goals",
     updatedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
     messageCount: 8,
@@ -85,7 +88,7 @@ export const INITIAL_CONVERSATIONS = [
     messages: [],
   },
   {
-    id: "c8",
+    id: "conv_init_c8",
     title: "Code review: message composer",
     updatedAt: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
     messageCount: 14,
@@ -95,7 +98,7 @@ export const INITIAL_CONVERSATIONS = [
     messages: [],
   },
   {
-    id: "c9",
+    id: "conv_init_c9",
     title: "LLM evals – rubric + dataset",
     updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
     messageCount: 40,
@@ -105,7 +108,7 @@ export const INITIAL_CONVERSATIONS = [
     messages: [],
   },
   {
-    id: "c10",
+    id: "conv_init_c10",
     title: "Prompt library – onboarding",
     updatedAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
     messageCount: 11,
@@ -115,7 +118,7 @@ export const INITIAL_CONVERSATIONS = [
     messages: [],
   },
   {
-    id: "c11",
+    id: "conv_init_c11",
     title: "Grocery budgeting – monthly",
     updatedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(),
     messageCount: 5,
@@ -236,6 +239,6 @@ Additional context and discussion points`,
 
 export const INITIAL_FOLDERS = [
   { id: "f1", name: "Work Projects" },
-  { id: "f2", name: "Personal" },
+  { id: "f2", name: "Mock Data" },
   { id: "f3", name: "Code Reviews" },
 ]

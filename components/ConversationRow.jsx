@@ -50,7 +50,7 @@ export default function ConversationRow({ data, active, onSelect, onTogglePin, o
   }
 
   return (
-    <div className="group relative">
+    <div className="group/conversation relative">
       <div
         onClick={onSelect}
         className={cls(
@@ -76,7 +76,10 @@ export default function ConversationRow({ data, active, onSelect, onTogglePin, o
               e.stopPropagation()
               setShowMenu(!showMenu)
             }}
-            className="rounded-md p-1 text-zinc-500 opacity-0 transition group-hover:opacity-100 hover:bg-zinc-200/50 dark:text-zinc-300 dark:hover:bg-zinc-700/60"
+            className={cls(
+              "rounded-md p-1 text-zinc-500 transition hover:bg-zinc-200/50 dark:text-zinc-300 dark:hover:bg-zinc-700/60",
+              active ? "opacity-100" : "opacity-0 group-hover/conversation:opacity-100"
+            )}
             aria-label="Chat options"
           >
             <MoreHorizontal className="h-4 w-4" />

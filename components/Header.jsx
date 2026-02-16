@@ -7,26 +7,21 @@ export default function Header({ createNewChat, sidebarCollapsed, setSidebarOpen
   const [selectedBot, setSelectedBot] = useState("Gemini")
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const GeminiIcon = () => (
-  <img src="/gemini_icon.png" alt="Gemini" className="h-4 w-4 object-contain" />
-)
+    <img src="/gemini_icon.png" alt="Gemini" className="h-4 w-4 object-contain" />
+  )
   const GPTIcon = () => (
-  <img src="/chatgpt_icon.png" alt="ChatGPT" className="h-4 w-4 object-contain" />
-)
+    <img src="/chatgpt_icon.png" alt="ChatGPT" className="h-4 w-4 object-contain" />
+  )
   const chatbots = [
     { name: "GPT-5", icon: <GPTIcon /> },
     { name: "Claude Sonnet 4", icon: "🎭" },
     { name: "Gemini", icon: <GeminiIcon /> },
     { name: "Assistant", icon: <Asterisk className="h-4 w-4" /> },
   ]
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   return (
     <div className="sticky top-0 z-30 flex items-center gap-2 border-b border-zinc-200/60 bg-white/80 px-4 py-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/70">
-      {isMounted && sidebarCollapsed && (
+      {sidebarCollapsed && (
         <button
           onClick={() => setSidebarOpen(true)}
           className="md:hidden inline-flex items-center justify-center rounded-lg p-2 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-zinc-800"

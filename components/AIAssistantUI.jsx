@@ -8,7 +8,8 @@ import Header from "./Header"
 import ChatPane from "./ChatPane"
 import GhostIconButton from "./GhostIconButton"
 import ThemeToggle from "./ThemeToggle"
-import { INITIAL_CONVERSATIONS, INITIAL_TEMPLATES, INITIAL_FOLDERS } from "./mockData"
+import { INITIAL_TEMPLATES, INITIAL_FOLDERS } from "./mockData"
+import LandingPage from "./LandingPage"
 
 export default function AIAssistantUI() {
   const [theme, setTheme] = useState(() => {
@@ -19,10 +20,14 @@ export default function AIAssistantUI() {
     return "light"
   })
 
+  const [isMounted, setIsMounted] = useState(false)
+
   useEffect(() => {
+    setIsMounted(true)
     try {
       if (theme === "dark") document.documentElement.classList.add("dark")
       else document.documentElement.classList.remove("dark")
+      // ... existing theme logic
       document.documentElement.setAttribute("data-theme", theme)
       document.documentElement.style.colorScheme = theme
       localStorage.setItem("theme", theme)
@@ -41,6 +46,8 @@ export default function AIAssistantUI() {
       return () => media.removeEventListener("change", listener)
     } catch { }
   }, [])
+
+
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(() => {
@@ -72,15 +79,20 @@ export default function AIAssistantUI() {
     } catch { }
   }, [sidebarCollapsed])
 
-
-  const [input, setInput] = useState('') // 1. 입력 상태 직접 관리 (AI SDK 5.0+ 필수 사항)
-  const handleInputChange = (e) => {   // 2. handleInputChange 직접 정의
+  const [input, setInput] = useState('')
+  const handleInputChange = (e) => {
     setInput(e.target.value)
   }
-  const [conversations, setConversations] = useState(INITIAL_CONVERSATIONS)
+
+
+
+  // 🚀 Refactor: DB as Single Source of Truth
+  const [conversations, setConversations] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [templates, setTemplates] = useState(INITIAL_TEMPLATES)
   const [folders, setFolders] = useState(INITIAL_FOLDERS)
+
+
 
   const [query, setQuery] = useState("")
   const searchRef = useRef(null)
@@ -104,10 +116,10 @@ export default function AIAssistantUI() {
     return () => window.removeEventListener("keydown", onKey)
   }, [sidebarOpen, conversations])
 
+  // Landing page: no auto-create on mount
+
   useEffect(() => {
-    if (!selectedId && conversations.length > 0) {
-      createNewChat()
-    }
+    loadConversations()
   }, [])
 
   const filtered = useMemo(() => {
@@ -130,11 +142,73 @@ export default function AIAssistantUI() {
   }, [conversations, folders])
 
   function togglePin(id) {
-    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, pinned: !c.pinned } : c)))
+    const conv = conversations.find(c => c.id === id);
+    const newPinned = !conv?.pinned;
+
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, pinned: newPinned } : c)));
+
+    fetch('/api/chat', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId: id, pinned: newPinned }),
+    }).catch(err => console.error('[UI] Failed to save pinned status:', err));
   }
 
+  function renameChat(id, newTitle) {
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title: newTitle } : c)));
+
+    fetch('/api/chat', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId: id, title: newTitle }),
+    }).catch(err => console.error('[UI] Failed to save title:', err));
+  }
+
+  async function deleteConversation(id) {
+    try {
+      await fetch(`/api/chat?conversationId=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+    } catch (err) {
+      console.error('[UI] Failed to delete messages from DB:', err);
+    }
+
+    setConversations((prev) => {
+      const updated = prev.filter((c) => c.id !== id);
+
+      if (selectedId === id) {
+        if (updated.length > 0) {
+          // If current chat is deleted, go to Landing Page (null) or select next?
+          // User request implies Landing Page preference.
+          setSelectedId(null);
+        } else {
+          // No chats left
+          setSelectedId(null);
+        }
+      }
+      return updated;
+    });
+  }
+
+
+  async function loadConversations() {
+    try {
+      const res = await fetch('/api/chat?all=true');
+      const data = await res.json();
+      const dbConversations = data.conversations || [];
+      // Sort: Newest first
+      dbConversations.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      setConversations(dbConversations);
+    } catch (err) {
+      console.error('[UI] Failed to load conversations:', err);
+    }
+  }
+
+
+
   function createNewChat() {
-    const id = Math.random().toString(36).slice(2)
+    // Use same format as DB: conv_[timestamp]_[random]
+    const id = `conv_${Date.now()}_${Math.random().toString(36).slice(2)}`
     const item = {
       id,
       title: "New Chat",
@@ -157,30 +231,34 @@ export default function AIAssistantUI() {
     setFolders((prev) => [...prev, { id: Math.random().toString(36).slice(2), name }])
   }
 
+  const selectedConversation = conversations.find((c) => c.id === selectedId) || null;
+
   const {
-    messages,
+    messages: chatMessages,
     isLoading,
     error,
-    reload,
     stop,
     sendMessage,
+    setMessages,
   } = useChat({
+    id: selectedId || "__landing__",
     api: "/api/chat",
-    body: {
-      conversationId: selectedId, // 서버에 대화 ID 전달
-    },
+    body: { conversationId: selectedId },
+    initialMessages: selectedConversation?.messages || [],
     onFinish: ({ message }) => {
+      // 1. Extract content from the AI response
       const textPart = message.parts?.find(p => p.type === 'text')
       const contentText = textPart ? textPart.text : ""
-      const previewText = contentText ? contentText.slice(0, 80) : "system: 메시지가 없습니다."
+      const previewText = contentText ? contentText.slice(0, 80) : "No content."
 
+      // 2. Sync ONLY metadata into the conversations list (Optimistic UI)
       setConversations(prev => prev.map(c =>
         c.id === selectedId ? {
           ...c,
           preview: previewText,
           updatedAt: new Date().toISOString(),
-          messageCount: (c.messageCount || 0) + 1,
-          messages: [...(c.messages || []), message]
+          // Incremented by 2 (User message + AI response)
+          messageCount: (c.messageCount || 0) + 2,
         } : c
       ))
     },
@@ -189,47 +267,64 @@ export default function AIAssistantUI() {
     }
   })
 
-  const handleSubmit = async (e) => {  // handleSubmit 직접 정의
-    if (e) e.preventDefault();
-    if (!input.trim()) return;
-
-    await sendMessage({ text: input });  // v5.0의 새로운 방식: sendMessage 사용    
-    setInput(''); // 전송 후 입력창 비우기
-  };
-
-  console.log("1. UI에서 확인:", typeof handleInputChange); // 👈 콘솔에 'function'이 찍혀야 함
-
-  // 🔧 대화 전환 시 메시지 동기화
   useEffect(() => {
     if (!selectedId) return;
 
-    const conv = conversations.find(c => c.id === selectedId);
-    if (conv && conv.messages && conv.messages.length > 0) {
-      console.log(`[UI] Loading ${conv.messages.length} messages for conversation ${selectedId}`);
-      // useChat의 messages를 업데이트하려면 setMessages를 사용해야 하지만
-      // v6에서는 이게 없으므로 새로운 대화 시작 시 messages가 초기화됨
+    async function loadMessages() {
+      if (!selectedId) return;
+      try {
+        const res = await fetch(`/api/chat?conversationId=${selectedId}`);
+        const data = await res.json();
+
+        if (data.messages && data.messages.length > 0) {
+          const msgs = data.messages.map(m => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            createdAt: m.createdAt ? new Date(m.createdAt) : undefined,
+          }));
+
+          setConversations(prev => prev.map(c =>
+            c.id === selectedId ? { ...c, messages: msgs } : c
+          ));
+          setMessages(msgs);
+        }
+      } catch (err) {
+        console.error('[UI] Failed to load messages:', err);
+      }
     }
+
+    loadMessages();
   }, [selectedId]);
 
-  // 🔧 useChat의 messages를 conversations에 동기화
-  useEffect(() => {
-    if (!selectedId || messages.length === 0) return;
+  const handleSubmit = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    const currentInput = input.trim();
+    if (!currentInput) return;
 
-    setConversations(prev => prev.map(c => {
-      if (c.id !== selectedId) return c;
-
-      // 메시지 수가 같으면 스킵
-      if ((c.messages?.length || 0) === messages.length) return c;
-
-      return {
+    // 1. Optimistic Update (Immediate Feedback)
+    setConversations(prev => prev.map(c =>
+      c.id === selectedId ? {
         ...c,
-        messages: messages,
-        messageCount: messages.length,
-      };
-    }));
-  }, [messages.length, selectedId]);
+        preview: currentInput.slice(0, 80),
+        updatedAt: new Date().toISOString(),
+      } : c
+    ))
 
-  function editMessage(convId, messageId, newContent) {
+    // 2. Snappy UI: Clear input immediately
+    setInput('');
+
+    // 3. Trigger SDK to send message
+    // AI SDK v6 uses sendMessage({ text }, options)
+    await sendMessage({
+      text: currentInput,
+    }, {
+      body: { conversationId: selectedId }
+    });
+  };
+
+  async function editMessage(convId, messageId, newContent) {
+    // 1. Optimistic Update (Local UI)
     const now = new Date().toISOString()
     setConversations((prev) =>
       prev.map((c) => {
@@ -244,14 +339,42 @@ export default function AIAssistantUI() {
         }
       }),
     )
+
+    // 2. Persist to DB
+    try {
+      await fetch('/api/chat', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId, content: newContent })
+      });
+    } catch (err) {
+      console.error('[UI] Failed to update message in DB:', err);
+    }
+
+    // 3. Update SDK State (if currently selected)
+    if (convId === selectedId) {
+      setMessages(prev => prev.map(m =>
+        m.id === messageId ? { ...m, content: newContent, parts: [{ type: 'text', text: newContent }] } : m
+      ));
+    }
   }
 
   function resendMessage(convId, messageId) {
-    const conv = conversations.find((c) => c.id === convId)
-    const msg = conv?.messages?.find((m) => m.id === messageId)
+    // 1. Try finding in current SDK messages first (most up to date for selected chat)
+    let msg = chatMessages?.find(m => m.id === messageId);
 
-    if (!msg || !msg.content) return
-    sendMessage({ text: msg.content })  // 🔧 AI SDK 5.0+ 방식: 찾은 메시지의 내용을 sendMessage로 재전송
+    // 2. Fallback to conversations list
+    if (!msg) {
+      const conv = conversations.find((c) => c.id === convId);
+      msg = conv?.messages?.find((m) => m.id === messageId);
+    }
+
+    if (!msg || (!msg.content && (!msg.parts || msg.parts.length === 0))) return;
+
+    const content = msg.content || msg.parts?.find(p => p.type === 'text')?.text || "";
+    if (!content) return;
+
+    sendMessage({ text: content });
   }
 
   function pauseThinking() {
@@ -268,6 +391,8 @@ export default function AIAssistantUI() {
 
   const composerRef = useRef(null)
   const selected = conversations.find((c) => c.id === selectedId) || null
+
+  if (!isMounted) return null
 
   return (
     <div className="h-screen w-full bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
@@ -307,6 +432,8 @@ export default function AIAssistantUI() {
           selectedId={selectedId}
           onSelect={(id) => setSelectedId(id)}
           togglePin={togglePin}
+          onRename={renameChat}
+          onDelete={deleteConversation}
           query={query}
           setQuery={setQuery}
           searchRef={searchRef}
@@ -319,21 +446,29 @@ export default function AIAssistantUI() {
 
         <main className="relative flex min-w-0 flex-1 flex-col">
           <Header createNewChat={createNewChat} sidebarCollapsed={sidebarCollapsed} setSidebarOpen={setSidebarOpen} />
-          <ChatPane
-            ref={composerRef}
-            conversation={selected}
-            messages={messages} // 🔧 useChat의 messages 전달
-            input={input}
+          {selected ? (
+            <ChatPane
+              ref={composerRef}
+              conversation={selected}
+              messages={chatMessages}
+              input={input}
 
-            handleInputChange={handleInputChange}
-            handleSubmit={handleSubmit}
+              handleInputChange={handleInputChange}
+              handleSubmit={handleSubmit}
 
-            sendMessage={sendMessage}
-            onEditMessage={(messageId, newContent) => selected && editMessage(selected.id, messageId, newContent)}
-            onResendMessage={(messageId) => selected && resendMessage(selected.id, messageId)}
-            isThinking={isLoading}
-            onPauseThinking={pauseThinking}
-          />
+              sendMessage={sendMessage}
+              onEditMessage={(messageId, newContent) => selected && editMessage(selected.id, messageId, newContent)}
+              onResendMessage={(messageId) => selected && resendMessage(selected.id, messageId)}
+              isThinking={isLoading}
+              onPauseThinking={pauseThinking}
+            />
+          ) : (
+            <LandingPage
+              recents={recent}
+              onSelect={setSelectedId}
+              onNewChat={createNewChat}
+            />
+          )}
         </main>
       </div>
 

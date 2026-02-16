@@ -50,7 +50,7 @@ export default function TemplateRow({ template, onUseTemplate, onEditTemplate, o
   }
 
   return (
-    <div className="group">
+    <div className="group/template">
       <div className="flex items-center justify-between rounded-lg px-2 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800">
         <button
           onClick={handleUse}
@@ -65,7 +65,7 @@ export default function TemplateRow({ template, onUseTemplate, onEditTemplate, o
         </button>
 
         <div className="flex items-center gap-1">
-          <span className="hidden group-hover:inline text-xs text-zinc-500 dark:text-zinc-400 px-1">Use</span>
+          <span className="hidden group-hover/template:inline text-xs text-zinc-500 dark:text-zinc-400 px-1">Use</span>
 
           <div className="relative" ref={menuRef}>
             <button
@@ -73,7 +73,7 @@ export default function TemplateRow({ template, onUseTemplate, onEditTemplate, o
                 e.stopPropagation()
                 setShowMenu(!showMenu)
               }}
-              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-opacity"
+              className="group-hover/template:opacity-100 opacity-0 p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-opacity"
             >
               <MoreHorizontal className="h-3 w-3" />
             </button>

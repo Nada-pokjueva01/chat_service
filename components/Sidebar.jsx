@@ -39,16 +39,18 @@ export default function Sidebar({
   selectedId,
   onSelect,
   togglePin,
+  onRename,
+  onDelete,
   query,
   setQuery,
   searchRef,
   createFolder,
   createNewChat,
   templates = [],
-  setTemplates = () => {},
-  onUseTemplate = () => {},
+  setTemplates = () => { },
+  onUseTemplate = () => { },
   sidebarCollapsed = false,
-  setSidebarCollapsed = () => {},
+  setSidebarCollapsed = () => { },
 
 }) {
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false)
@@ -135,7 +137,7 @@ export default function Sidebar({
     setIsMounted(true)
   }, [])
 
-  if (!isMounted) {    
+  if (!isMounted) {
     return <aside className="z-50 flex h-full ..." style={{ width: '320px' }} />;
   }
 
@@ -314,6 +316,8 @@ export default function Sidebar({
                       active={c.id === selectedId}
                       onSelect={() => onSelect(c.id)}
                       onTogglePin={() => togglePin(c.id)}
+                      onRename={onRename}
+                      onDelete={onDelete}
                     />
                   ))
                 )}
@@ -337,6 +341,8 @@ export default function Sidebar({
                       active={c.id === selectedId}
                       onSelect={() => onSelect(c.id)}
                       onTogglePin={() => togglePin(c.id)}
+                      onRename={onRename}
+                      onDelete={onDelete}
                       showMeta
                     />
                   ))
@@ -366,6 +372,8 @@ export default function Sidebar({
                       selectedId={selectedId}
                       onSelect={onSelect}
                       togglePin={togglePin}
+                      onRename={onRename}
+                      onDelete={onDelete}
                       onDeleteFolder={handleDeleteFolder}
                       onRenameFolder={handleRenameFolder}
                     />
@@ -423,7 +431,7 @@ export default function Sidebar({
                   JD
                 </div>
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">John Doe</div>
+                  <div className="truncate text-sm font-medium"> Takuya </div>
                   <div className="truncate text-xs text-zinc-500 dark:text-zinc-400">Pro workspace</div>
                 </div>
               </div>

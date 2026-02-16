@@ -34,7 +34,7 @@ const ChatPane = forwardRef(function ChatPane(
     input,
     handleInputChange,
     handleSubmit,
-    sendMessage, // 🔧 append 대신 sendMessage로 변경
+    sendMessage, // append 대신 sendMessage로 변경
     onEditMessage,
     onResendMessage,
     isThinking,
@@ -60,9 +60,9 @@ const ChatPane = forwardRef(function ChatPane(
 
   const tags = ["Certified", "Personalized", "Experienced", "Helpful"]
 
-  // 실시간 스트리밍 반영을 위해 useChat의 messages를 우선순위로 둠
-  const messages = sdkMessages || conversation.messages || []
-  const count = messages.length || conversation.messageCount || 0
+  const messages = sdkMessages || [];
+  console.log('[ChatPane] conv.id:', conversation?.id, 'messages count:', messages.length, 'first msg:', messages[0]?.content);
+  const count = messages.length || conversation?.messageCount || 0
 
   function startEdit(m) {
     setEditingId(m.id)
@@ -145,18 +145,21 @@ const ChatPane = forwardRef(function ChatPane(
                   </div>
                 ) : (
                   <Message role={m.role}>
-                    <div className="whitespace-pre-wrap">{m.part}</div>
-                    {m.parts && m.parts.map((part, i) => {
-                      if (part.type === 'text') {
-                        return (
-                          <div key={`${m.id}-${i}`} className="whitespace-pre-wrap">
-                            {part.text}
-                          </div>
-                        );
-                      }
-                      // reasoning(추론) 파트 등이 추가될 경우 여기서 처리 가능
-                      return null;
-                    })}
+                    {/* Priority: Render 'parts' if they exist and are non-empty, otherwise fallback to 'content' */}
+                    {m.parts && m.parts.length > 0 ? (
+                      m.parts.map((part, i) => {
+                        if (part.type === 'text') {
+                          return (
+                            <div key={`${m.id}-${i}`} className="whitespace-pre-wrap">
+                              {part.text}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })
+                    ) : (
+                      m.content && <div className="whitespace-pre-wrap">{m.content}</div>
+                    )}
 
                     {m.role === "user" && (
                       <div className="mt-1 flex gap-2 text-[11px] text-zinc-500">
